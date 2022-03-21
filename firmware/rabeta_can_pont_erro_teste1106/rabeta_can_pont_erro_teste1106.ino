@@ -52,7 +52,7 @@ void setup()
     Serial.begin(115200);
     can_init();
 
-    pinMode(MOTOR_FORWARD_PIN, OUTPUT); // configura pino como saí­da
+    pinMode(MOTOR_FORWARD_PIN, OUTPUT);  // configura pino como saí­da
     pinMode(MOTOR_BACKWARD_PIN, OUTPUT); // configura pino como saí­da
 
     Serial.println("Position Controller Configurations: ");
@@ -70,11 +70,25 @@ void can_init()
 {
     while (CAN_OK != CAN.begin(CAN_500KBPS))
     {
-        Serial.println("CAN BUS Shield init fail");
-        Serial.println("Init CAN BUS Shield again");
+        Serial.println("CAN BUS init fail");
+        Serial.println("Init CAN BUS again");
         delay(100);
     }
-    Serial.println("CAN BUS Shield init ok!");
+
+    Serial.println("CAN BUS init ok!");
+
+    CAN.init_Mask(0, 0, 0b11111111111);
+    CAN.init_Mask(1, 0, 0b11111111111);
+
+    CAN.init_Filt(0, 0, CAN_MSG_MIC19_MDE_ID);
+    CAN.init_Filt(1, 0, CAN_MSG_MIC19_MDE_ID);
+
+    CAN.init_Filt(2, 0, CAN_MSG_MIC19_MDE_ID);
+    CAN.init_Filt(3, 0, CAN_MSG_MIC19_MDE_ID);
+    CAN.init_Filt(4, 0, CAN_MSG_MIC19_MDE_ID);
+    CAN.init_Filt(5, 0, CAN_MSG_MIC19_MDE_ID);
+
+    Serial.println("CAN BUS Filters init ok!");
 }
 
 void check_can()
@@ -136,11 +150,13 @@ void can_app_recv_mic19()
     if (CAN_MSGAVAIL != CAN.checkReceive())
     {
         CAN.readMsgBuf(&len, buf);
-        if (buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] != CAN_SIGNATURE_MIC19){
+        if (buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] != CAN_SIGNATURE_MIC19)
+        {
             Serial.println("CAN: wrong SIGNATURE on received message.");
             return;
         }
-        if (len != CAN_MSG_MIC19_MDE_LENGTH){
+        if (len != CAN_MSG_MIC19_MDE_LENGTH)
+        {
             Serial.println("CAN: wrong message length.");
         }
 
