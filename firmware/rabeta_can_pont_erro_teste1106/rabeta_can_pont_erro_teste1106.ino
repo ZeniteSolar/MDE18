@@ -68,7 +68,7 @@ void setup()
 
 void can_init()
 {
-    while (CAN_OK != CAN.begin(CAN_500KBPS))
+    while (CAN_OK != CAN.begin(CAN_500KBPS, MCP_8MHz))
     {
         Serial.println("CAN BUS init fail");
         Serial.println("Init CAN BUS again");
@@ -89,6 +89,8 @@ void can_init()
     CAN.init_Filt(5, 0, CAN_MSG_MIC19_MDE_ID);
 
     Serial.println("CAN BUS Filters init ok!");
+
+    control.position_setpoint = position_center_value;
 }
 
 void check_can()
@@ -147,8 +149,6 @@ void can_app_recv_mic19()
     uint8_t buf[CAN_MSG_MIC19_MDE_LENGTH];
     uint16_t can_app_checks_without_mic19_msg = 0;
 
-    control.position_setpoint = position_center_value;
-
     if (CAN_MSGAVAIL != CAN.checkReceive())
     {
         CAN.readMsgBuf(&len, buf);
@@ -199,6 +199,7 @@ void can_app_recv_mic19()
     {
         Serial.println("Error: too many cycles without MIC19 messages.");
         error_flags.no_canbus = 1;
+        control.position_setpoint = position_center_value;
     }
 }
 
