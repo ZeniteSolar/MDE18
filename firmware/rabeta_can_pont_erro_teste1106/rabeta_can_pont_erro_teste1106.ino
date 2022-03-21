@@ -1,6 +1,16 @@
-#include <SPI.h>
-#include <mcp_can.h>
 #include "can_ids.h"
+#include <SPI.h>
+
+#define CAN_2515
+
+const int SPI_CS_PIN = 10;
+const int CAN_INT_PIN = 2;
+
+#ifdef CAN_2515
+#include "mcp2515_can.h"
+mcp2515_can CAN(SPI_CS_PIN); // Set CS pin
+#endif
+
 
 const uint8_t position_center_value = 128;           // ajuste do centro do potenciômetro da popa
 const uint8_t position_error_zero_region = 2;        // ajuste do intervalo de zero, estabilidade na direção
@@ -45,8 +55,6 @@ void can_app_send_state();
 void can_app_send_steering_wheel_postion();
 void position_control();
 
-MCP_CAN CAN(10); // SPI CS PIN
-
 void setup()
 {
     Serial.begin(115200);
@@ -75,6 +83,8 @@ void can_init()
         delay(100);
     }
 
+    // CAN.setMode(0);
+
     Serial.println("CAN BUS init ok!");
 
     CAN.init_Mask(0, 0, 0b11111111111);
@@ -97,42 +107,42 @@ void check_can()
 {
     can_app_recv_mic19();
 
-    if (can_app_send_state_clk_div++ >= CAN_APP_SEND_STATE_CLK_DIV)
-    {
-        Serial.println("state msg was sent.");
-        can_app_send_state();
-        can_app_send_state_clk_div = 0;
-    }
-    if (can_app_send_steering_wheel_position_clk_div++ >= CAN_APP_SEND_STEERING_WHEEL_POSITION_CLK_DIV)
-    {
-        Serial.println("steering wheel msg was sent.");
-        can_app_send_steering_wheel_postion();
-        can_app_send_steering_wheel_position_clk_div = 0;
-    }
+    // if (can_app_send_state_clk_div++ >= CAN_APP_SEND_STATE_CLK_DIV)
+    // {
+    //     Serial.println("state msg was sent.");
+    //     can_app_send_state();
+    //     can_app_send_state_clk_div = 0;
+    // }
+    // if (can_app_send_steering_wheel_position_clk_div++ >= CAN_APP_SEND_STEERING_WHEEL_POSITION_CLK_DIV)
+    // {
+    //     Serial.println("steering wheel msg was sent.");
+    //     can_app_send_steering_wheel_postion();
+    //     can_app_send_steering_wheel_position_clk_div = 0;
+    // }
 }
 
-void can_app_send_state()
-{
-    uint8_t buf[CAN_MSG_GENERIC_STATE_LENGTH];
+// void can_app_send_state()
+// {
+//     uint8_t buf[CAN_MSG_GENERIC_STATE_LENGTH];
 
-    buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] = CAN_SIGNATURE_SELF;
-    buf[CAN_MSG_GENERIC_STATE_STATE_BYTE] = 0; // ignoring because we are not using a finite state machine here
-    buf[CAN_MSG_GENERIC_STATE_ERROR_BYTE] = error_flags.all;
+//     buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] = CAN_SIGNATURE_SELF;
+//     buf[CAN_MSG_GENERIC_STATE_STATE_BYTE] = 0; // ignoring because we are not using a finite state machine here
+//     buf[CAN_MSG_GENERIC_STATE_ERROR_BYTE] = error_flags.all;
 
-    CAN.sendMsgBuf(CAN_MSG_MDE22_STATE_ID, 0, CAN_MSG_GENERIC_STATE_LENGTH, buf);
-}
+//     CAN.sendMsgBuf(CAN_MSG_MDE22_STATE_ID, 0, CAN_MSG_GENERIC_STATE_LENGTH, buf);
+// }
 
-void can_app_send_steering_wheel_postion()
-{
-    uint8_t buf[CAN_MSG_MDE22_POSITION_LENGTH];
+// void can_app_send_steering_wheel_postion()
+// {
+//     uint8_t buf[CAN_MSG_MDE22_POSITION_LENGTH];
 
-    buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] = CAN_SIGNATURE_SELF;
-    buf[CAN_MSG_MDE22_POSITION_SETPOINT_BYTE] = (uint8_t)control.position_setpoint;
-    buf[CAN_MSG_MDE22_POSITION_MEASUREMENT_BYTE] = (uint8_t)control.position_measurement;
-    buf[CAN_MSG_MDE22_POSITION_CONTROL_BYTE] = (uint8_t)control.position_control;
+//     buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] = CAN_SIGNATURE_SELF;
+//     buf[CAN_MSG_MDE22_POSITION_SETPOINT_BYTE] = (uint8_t)control.position_setpoint;
+//     buf[CAN_MSG_MDE22_POSITION_MEASUREMENT_BYTE] = (uint8_t)control.position_measurement;
+//     buf[CAN_MSG_MDE22_POSITION_CONTROL_BYTE] = (uint8_t)control.position_control;
 
-    CAN.sendMsgBuf(CAN_MSG_MDE22_STATE_ID, 0, CAN_MSG_GENERIC_STATE_LENGTH, buf);
-}
+//     CAN.sendMsgBuf(CAN_MSG_MDE22_STATE_ID, 0, CAN_MSG_GENERIC_STATE_LENGTH, buf);
+// }
 
 /**
  * @brief extracts the specific MIC19 MDE message
@@ -152,14 +162,14 @@ void can_app_recv_mic19()
     if (CAN_MSGAVAIL != CAN.checkReceive())
     {
         CAN.readMsgBuf(&len, buf);
-        uint16_t id = CAN.getCanId();
+        unsigned long id = CAN.getCanId();
 
         if (id != CAN_MSG_MIC19_MDE_ID)
         {
             Serial.print("CAN: wrong ID on received message. Expecting ");
-            Serial.print(CAN_MSG_MIC19_MDE_ID);
+            Serial.print(CAN_MSG_MIC19_MDE_ID, HEX);
             Serial.print(", but was: ");
-            Serial.println(id);
+            Serial.println(id, HEX);
             return;
         }
 
