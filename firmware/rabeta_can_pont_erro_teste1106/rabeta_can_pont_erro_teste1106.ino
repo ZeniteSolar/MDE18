@@ -149,29 +149,34 @@ void can_app_recv_mic19()
 
     control.position_setpoint = position_center_value;
 
-
     if (CAN_MSGAVAIL != CAN.checkReceive())
     {
         CAN.readMsgBuf(&len, buf);
         uint16_t id = CAN.getCanId();
 
-        if (id != CAN_MSG_MIC19_MDE_ID) {
-            Serial.print("CAN: wrong ID on received message: ");
-            // Serial.println(id);
+        if (id != CAN_MSG_MIC19_MDE_ID)
+        {
+            Serial.print("CAN: wrong ID on received message. Expecting ");
+            Serial.print(CAN_MSG_MIC19_MDE_ID);
+            Serial.print(", but was: ");
             Serial.println(id);
             return;
         }
 
         if (len != CAN_MSG_MIC19_MDE_LENGTH)
         {
-            Serial.print("CAN: wrong message length: ");
+            Serial.print("CAN: wrong message length. Expecting ");
+            Serial.print(CAN_MSG_MIC19_MDE_LENGTH);
+            Serial.print(", but was: ");
             Serial.println(len);
             return;
         }
 
         if (buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] != CAN_SIGNATURE_MIC19)
         {
-            Serial.print("CAN: wrong SIGNATURE on received message: ");
+            Serial.print("CAN: wrong SIGNATURE on received message. Expecting ");
+            Serial.print(CAN_SIGNATURE_MIC19);
+            Serial.print(", but was: ");
             Serial.println(buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE]);
             return;
         }
