@@ -120,20 +120,19 @@ void can_app_recv_mic19()
     if (CAN_MSGAVAIL == CAN.checkReceive())
     {
         CAN.readMsgBuf(&len, buf);
-        if (buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] == CAN_SIGNATURE_MIC19)
+        if ((buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] == CAN_SIGNATURE_MIC19) and (len == CAN_MSG_MIC19_MDE_LENGTH))
         {
-            if (len == CAN_MSG_MIC19_MDE_LENGTH)
-            {
-                can_app_checks_without_mic19_msg = 0;
-                error_flags.no_canbus = 0;
-                control.position_setpoint = buf[CAN_MSG_MIC19_MDE_POSITION_BYTE];
-            }
+            can_app_checks_without_mic19_msg = 0;
+            error_flags.no_canbus = 0;
+            control.position_setpoint = buf[CAN_MSG_MIC19_MDE_POSITION_BYTE];
         }
     }
-    else if (can_app_checks_without_mic19_msg++ >= CAN_APP_CHECKS_WITHOUT_MIC19_MSG)
+    else
+        control.position_setpoint = STEERING_WHEEL_CENTER_POSITION;
+
+    if (can_app_checks_without_mic19_msg++ >= CAN_APP_CHECKS_WITHOUT_MIC19_MSG)
     {
         Serial.println("Error: too many cycles without MIC19 messages.");
-        control.position_setpoint = STEERING_WHEEL_CENTER_POSITION;
         error_flags.no_canbus = 1;
     }
 }
