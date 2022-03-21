@@ -2,8 +2,12 @@
 #include <mcp_can.h>
 #include "can_ids.h"
 
+const uint8_t position_center_value = 128;           // ajuste do centro do potenciômetro da popa
+const uint8_t position_error_zero_region = 2;        // ajuste do intervalo de zero, estabilidade na direção
+const uint8_t position_error_minimum_threshold = 85; // ajuste de potencia inicial do pwm, ajusta a potencia e velocidade do motor
+const uint8_t position_error_maximum_threshold = 90; // ajuste de potencia final do pwm, ajusta a potencia e velocidade do motor
+
 #define ADC_CHANNEL_POTENTIOMETER A0
-#define STEERING_WHEEL_CENTER_POSITION 128
 
 #define CAN_SIGNATURE_SELF CAN_SIGNATURE_MDE22
 #define CAN_APP_CHECKS_WITHOUT_MIC19_MSG 200
@@ -48,6 +52,16 @@ void setup()
 
     pinMode(3, OUTPUT); // configura pino como saí­da
     pinMode(5, OUTPUT); // configura pino como saí­da
+
+    Serial.println("Position Controller Configurations: ");
+    Serial.print("\t position_center_value = ");
+    Serial.println(position_center_value);
+    Serial.print("\t position_error_zero_region = ");
+    Serial.println(position_error_zero_region);
+    Serial.print("\t position_error_minimum_threshold = ");
+    Serial.println(position_error_minimum_threshold);
+    Serial.print("\t position_error_maximum_threshold = ");
+    Serial.println(position_error_maximum_threshold);
 }
 
 void can_init()
@@ -122,13 +136,25 @@ void can_app_recv_mic19()
         CAN.readMsgBuf(&len, buf);
         if ((buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] == CAN_SIGNATURE_MIC19) and (len == CAN_MSG_MIC19_MDE_LENGTH))
         {
+            Serial.print("Received a MIC19 MDE message:[");
+            for (uint8_t i = 0; i < len; i++)
+            {
+                Serial.print(buf[i]);
+                if (i != len)
+                    Serial.print(", ");
+            }
+            Serial.println("]");
             can_app_checks_without_mic19_msg = 0;
             error_flags.no_canbus = 0;
             control.position_setpoint = buf[CAN_MSG_MIC19_MDE_POSITION_BYTE];
         }
     }
     else
-        control.position_setpoint = STEERING_WHEEL_CENTER_POSITION;
+    {
+        control.position_setpoint = position_center_value;
+        Serial.print("Fail: no MIC19 MDE message. setpoint is now: ");
+        Serial.println(control.position_setpoint);
+    }
 
     if (can_app_checks_without_mic19_msg++ >= CAN_APP_CHECKS_WITHOUT_MIC19_MSG)
     {
@@ -139,45 +165,43 @@ void can_app_recv_mic19()
 
 void position_control()
 {
-    const uint8_t position_error_zero_region = 2;        // ajuste do intervalo de zero, estabilidade na direção
-    const uint8_t position_error_minimum_threshold = 85; // ajuste de potencia inicial do pwm, ajusta a potencia e velocidade do motor
-    const uint8_t position_error_maximum_threshold = 90; // ajuste de potencia final do pwm, ajusta a potencia e velocidade do motor
+    Serial.print("Position { setpoint:");
+    Serial.print(control.position_setpoint);
 
     control.position_measurement = map(analogRead(ADC_CHANNEL_POTENTIOMETER), 0, 1024, 0, 255);
-    Serial.print("motor = ");
-    Serial.println(control.position_measurement);
+    Serial.print(", measurement: ");
+    Serial.print(control.position_measurement);
 
     int16_t position_error = control.position_measurement - control.position_setpoint;
+    Serial.print(", error: ");
+    Serial.print(position_error);
     if (position_error > position_error_zero_region)
     {
-        Serial.print("positivo = ");
-        Serial.println(position_error);
         if (position_error > position_error_maximum_threshold)
-        {
             position_error = position_error_maximum_threshold;
-        }
         control.position_control = map(position_error, 0, position_error_maximum_threshold, position_error_minimum_threshold, 255);
         analogWrite(5, 0);
         analogWrite(3, control.position_control);
     }
     else if (position_error < -position_error_zero_region)
     {
-        Serial.print("negativo = ");
-        position_error = position_error * (-1);
-        Serial.println(position_error);
+        position_error *= -1;
         if (position_error > position_error_maximum_threshold)
-        {
             position_error = position_error_maximum_threshold;
-        }
         control.position_control = map(position_error, 0, position_error_maximum_threshold, position_error_minimum_threshold, 255);
         analogWrite(5, control.position_control);
         analogWrite(3, 0);
     }
     else
     {
+        control.position_control = 0;
         analogWrite(5, 0);
         analogWrite(3, 0);
     }
+    Serial.print(", control: ");
+    Serial.print(control.position_control);
+
+    Serial.println("}");
 }
 
 void loop()
