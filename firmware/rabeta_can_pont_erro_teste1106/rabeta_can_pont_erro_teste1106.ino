@@ -136,7 +136,7 @@ void can_app_recv_mic19()
         CAN.readMsgBuf(&len, buf);
         if ((buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] == CAN_SIGNATURE_MIC19) and (len == CAN_MSG_MIC19_MDE_LENGTH))
         {
-            Serial.print("Received a MIC19 MDE message:[");
+            Serial.print("Received a MIC19 MDE message: [");
             for (uint8_t i = 0; i < len; i++)
             {
                 Serial.print(buf[i]);
@@ -165,7 +165,7 @@ void can_app_recv_mic19()
 
 void position_control()
 {
-    Serial.print("Position { setpoint:");
+    Serial.print("Position { setpoint: ");
     Serial.print(control.position_setpoint);
 
     control.position_measurement = map(analogRead(ADC_CHANNEL_POTENTIOMETER), 0, 1024, 0, 255);
@@ -201,7 +201,7 @@ void position_control()
     Serial.print(", control: ");
     Serial.print(control.position_control);
 
-    Serial.println("}");
+    Serial.println(" }");
 }
 
 void loop()
