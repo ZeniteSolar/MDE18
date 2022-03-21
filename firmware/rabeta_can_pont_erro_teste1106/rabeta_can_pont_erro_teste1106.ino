@@ -8,6 +8,8 @@ const uint8_t position_error_minimum_threshold = 85; // ajuste de potencia inici
 const uint8_t position_error_maximum_threshold = 90; // ajuste de potencia final do pwm, ajusta a potencia e velocidade do motor
 
 #define ADC_CHANNEL_POTENTIOMETER A0
+#define MOTOR_FORWARD_PIN 5
+#define MOTOR_BACKWARD_PIN 3
 
 #define CAN_SIGNATURE_SELF CAN_SIGNATURE_MDE22
 #define CAN_APP_CHECKS_WITHOUT_MIC19_MSG 200
@@ -50,8 +52,8 @@ void setup()
     Serial.begin(115200);
     can_init();
 
-    pinMode(3, OUTPUT); // configura pino como saí­da
-    pinMode(5, OUTPUT); // configura pino como saí­da
+    pinMode(MOTOR_FORWARD_PIN, OUTPUT); // configura pino como saí­da
+    pinMode(MOTOR_BACKWARD_PIN, OUTPUT); // configura pino como saí­da
 
     Serial.println("Position Controller Configurations: ");
     Serial.print("\t position_center_value = ");
@@ -180,8 +182,8 @@ void position_control()
         if (position_error > position_error_maximum_threshold)
             position_error = position_error_maximum_threshold;
         control.position_control = map(position_error, 0, position_error_maximum_threshold, position_error_minimum_threshold, 255);
-        analogWrite(5, 0);
-        analogWrite(3, control.position_control);
+        analogWrite(MOTOR_FORWARD_PIN, 0);
+        analogWrite(MOTOR_BACKWARD_PIN, control.position_control);
     }
     else if (position_error < -position_error_zero_region)
     {
@@ -189,14 +191,14 @@ void position_control()
         if (position_error > position_error_maximum_threshold)
             position_error = position_error_maximum_threshold;
         control.position_control = map(position_error, 0, position_error_maximum_threshold, position_error_minimum_threshold, 255);
-        analogWrite(5, control.position_control);
-        analogWrite(3, 0);
+        analogWrite(MOTOR_FORWARD_PIN, control.position_control);
+        analogWrite(MOTOR_BACKWARD_PIN, 0);
     }
     else
     {
         control.position_control = 0;
-        analogWrite(5, 0);
-        analogWrite(3, 0);
+        analogWrite(MOTOR_FORWARD_PIN, 0);
+        analogWrite(MOTOR_BACKWARD_PIN, 0);
     }
     Serial.print(", control: ");
     Serial.print(control.position_control);
