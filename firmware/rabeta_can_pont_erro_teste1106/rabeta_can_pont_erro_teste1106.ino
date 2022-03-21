@@ -133,29 +133,35 @@ void can_app_recv_mic19()
     uint8_t buf[CAN_MSG_MIC19_MDE_LENGTH];
     uint16_t can_app_checks_without_mic19_msg = 0;
 
-    if (CAN_MSGAVAIL == CAN.checkReceive())
+    if (CAN_MSGAVAIL != CAN.checkReceive())
     {
         CAN.readMsgBuf(&len, buf);
-        if ((buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] == CAN_SIGNATURE_MIC19) and (len == CAN_MSG_MIC19_MDE_LENGTH))
-        {
-            Serial.print("Received a MIC19 MDE message: [");
-            for (uint8_t i = 0; i < len; i++)
-            {
-                Serial.print(buf[i]);
-                if (i != len)
-                    Serial.print(", ");
-            }
-            Serial.println("]");
-            can_app_checks_without_mic19_msg = 0;
-            error_flags.no_canbus = 0;
-            control.position_setpoint = buf[CAN_MSG_MIC19_MDE_POSITION_BYTE];
+        if (buf[CAN_MSG_GENERIC_STATE_SIGNATURE_BYTE] != CAN_SIGNATURE_MIC19){
+            Serial.println("CAN: wrong SIGNATURE on received message.");
+            return;
         }
+        if (len != CAN_MSG_MIC19_MDE_LENGTH){
+            Serial.println("CAN: wrong message length.");
+        }
+
+        Serial.print("Received a MIC19 MDE message: [");
+        for (uint8_t i = 0; i < len; i++)
+        {
+            Serial.print(buf[i]);
+            if (i != len)
+                Serial.print(", ");
+        }
+        Serial.println("]");
+
+        can_app_checks_without_mic19_msg = 0;
+        error_flags.no_canbus = 0;
+        control.position_setpoint = buf[CAN_MSG_MIC19_MDE_POSITION_BYTE];
     }
     else
     {
         control.position_setpoint = position_center_value;
-        Serial.print("Fail: no MIC19 MDE message. setpoint is now: ");
-        Serial.println(control.position_setpoint);
+        // Serial.print("Fail: no MIC19 MDE message. setpoint is now: ");
+        // Serial.println(control.position_setpoint);
     }
 
     if (can_app_checks_without_mic19_msg++ >= CAN_APP_CHECKS_WITHOUT_MIC19_MSG)
